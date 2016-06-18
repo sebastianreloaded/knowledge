@@ -1,0 +1,2 @@
+- reload package while developing packages: ```ctrl-opt-cmd-L```
+- pull in dependencies while developing: ```apm install```
