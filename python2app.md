@@ -23,3 +23,8 @@ do not install to a folder with spaces, best is c:\Python27
 - pip install -r requirements.txt
 - pyinstaller -w -F gui.py
 - (maybe use --win-private-assemblies)
+
+debugging:
+pyinstaller --onedir --noupx --debug gui.py
+cd dist\gui
+gui.exe
