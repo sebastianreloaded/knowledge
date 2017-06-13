@@ -1,0 +1,63 @@
+pipeline {
+    agent none
+    options {
+        timestamps()
+    }
+    stages {
+        stage ('cleanup') {
+            agent { label 'ec2-worker-ubuntu-vagrant' }
+            when {
+                branch 'this_is_disabled'
+            }
+            steps {
+                deleteDir()
+            }
+        }
+        stage ('checkout') {
+            agent { label 'ec2-worker-ubuntu-vagrant' }
+            steps {
+                checkout scm
+            }
+        }
+        stage ("testing") {
+            agent { label 'ec2-worker-ubuntu-vagrant' }
+            tools {
+                nodejs 'nodejs-7.x'
+            }
+            steps {
+                sshagent(['github-jenkins-deploy-key']) {
+                    ansiColor('xterm') {
+                        sh 'bash build-scripts/jenkins-local.sh'
+                    }  
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts "**/*"
+                    junit '*/mocha_report.xml'
+                    step([$class: 'CoberturaPublisher', autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: '**/coverage/**/cobertura-coverage.xml', failUnhealthy: false, failUnstable: false, maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false])
+                }
+            }
+        }
+        stage('Decide deploy to acceptance test server') {
+			agent none
+			steps {
+				// checkpoint 'Build and tests done' - not yet supported in CE
+				script {
+					env.DEPLOY = input message: 'User input required',
+							submitter: 'authenticated',
+							parameters: [choice(name: 'Deploy to server', choices: 'no\nyes', description: 'Choose "yes" if you want to deploy the acceptance test server')]
+				}
+			}
+		}
+        stage ('deploy') {
+            agent { label 'master' }
+            when {
+				environment name: 'DEPLOY', value: 'yes'
+			}
+            steps {
+                sh 'echo "deploy"'
+            }
+        }
+    }
+}
