@@ -1,0 +1,93 @@
+pipeline {
+    agent {
+        label 'master'
+    }
+    options {
+        timestamps()
+    }
+    tools {
+        nodejs 'nodejs-7.x'
+    }
+    stages {
+        stage ('cleanup') {
+            when {
+                branch 'this_is_disabled'
+            }
+            steps {
+                deleteDir()
+            }
+        }
+        stage ('checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage ("testing") {
+            steps {
+                sh 'node --version'
+                sh 'yarn --version'
+                sh 'yarn install'
+                sh 'npm run test:unit'
+            }
+        }
+        stage ("prepare deploy environment") {
+            steps {
+                sh 'virtualenv .awsebcli'
+                sh '''
+                . .awsebcli/bin/activate
+                pip install --upgrade awsebcli
+                '''
+                sh 'mkdir .elasticbeanstalk'
+                sh '''
+cat <<EOF > .elasticbeanstalk/config.yml
+global:
+  application_name: test
+  default_region: eu-central-1
+EOF
+                '''
+            }
+        }
+        stage ("prepare relase") {
+            steps {
+                sh 'gulp build'
+                echo "${env.BRANCH_NAME}"
+            }
+        }
+        stage ("when") {
+            when {
+                anyOf {
+                    branch "jenkinsfile"
+                    branch "develop"
+                }
+            }
+            steps {
+                echo 'works'
+            }
+        }
+        stage ("deploy") {
+            when {
+                not { 
+                    anyOf {
+                        branch "jenkinsfile"
+                    }
+                }
+            }
+            steps {
+                script {
+                    if (params.app_env == null) {
+                        env.app_env = 'sdsadsadsad'
+                    } else {
+                        env.app_env = params.app_env
+                    }
+                }
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-studio-deploy-credentials', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    sh """
+                    . .awsebcli/bin/activate
+                    eb deploy ${env.app_env}
+                    """
+                }
+            }
+        }
+    }
+    
+}
