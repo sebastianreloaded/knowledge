@@ -3,7 +3,7 @@ source $ZPLUG_HOME/init.zsh
 
 zplug "bhilburn/powerlevel9k", use:powerlevel9k.zsh-theme
 POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context aws dir vcs)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv background_jobs command_execution_time)
 POWERLEVEL9K_STATUS_VERBOSE=false
 POWERLEVEL9K_SHORTEN_STRATEGY="truncate_middle"
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=3
@@ -19,6 +19,9 @@ zplug "plugins/aws",   from:oh-my-zsh
 export DEFAULT_USER="$USER"
 zplug load
 
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=243'
 
 # Lines configured by zsh-newuser-install
@@ -33,3 +36,9 @@ zstyle :compinstall filename '/Users/sopel/.zshrc'
 autoload -Uz compinit
 compinit
 # End of lines added by compinstall
+
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+export PATH="$HOME/.jenv/bin:$PATH"
+eval "$(jenv init -)"
+
+export PATH="$HOME/.fastlane/bin:$PATH"
